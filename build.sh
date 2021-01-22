@@ -7,6 +7,6 @@ if [ $# -ne 2 ]; then
 else
   PLATFORM="${1}"
   VERSION="${2}"
-  docker build --build-arg VERSION --build-arg PLATFORM -t htop-${PLATFORM} .
+  docker build --build-arg VERSION=${VERSION} --build-arg PLATFORM=${PLATFORM} -t htop-${PLATFORM} .
   docker cp $(docker create --rm htop-${PLATFORM} sleep 0):/htop-${VERSION} ./htop-${VERSION}-${PLATFORM}
 fi

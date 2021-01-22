@@ -1,9 +1,9 @@
 ---
 kind: pipeline
-name: build
+name: publish
 
 environment:
-  PLATFORMS: ubuntu:2004 ubuntu:1804 debian:10 debian:9
+  PLATFORMS: ubuntu:20.04 ubuntu:18.04 debian:10 debian:9
 
 services:
   - name: docker
@@ -24,40 +24,12 @@ steps:
       - name: dockersock
         path: /var/run
     commands:
+      - apk add bash
+      - sleep 5 # give docker service time to start
       - |
         for PLATFORM in $${PLATFORMS}; do
-          ./build.sh ${PLATFORM} $${DRONE_TAG}
+          ./build.sh $${PLATFORM} $${DRONE_TAG}
         done
-
----
-kind: pipeline
-name: publish
-depends_on:
-  - build
-
-services:
-  - name: docker
-    image: docker:dind
-    privileged: true
-    volumes:
-      - name: dockersock
-        path: /var/run
-
-volumes:
-  - name: dockersock
-    temp: {}
-
-steps:
-  - name: install
-    commands: apk add curl
-
-  - name: build
-    image: docker:19
-    volumes:
-      - name: dockersock
-        path: /var/run
-    commands:
-      - ./build.sh ubuntu:18.04 $${DRONE_TAG}
 
   - name: publish
     image: docker:19
@@ -65,7 +37,11 @@ steps:
       GITHUB_TOKEN:
         from_secret: GITHUB_TOKEN
     commands:
-      - ./publish.sh $${DRONE_REPO_NAME} $${DRONE_REPO} $${DRONE_TAG} "htop-$${DRONE_TAG}-ubuntu:18.04"
+      - apk add curl bash
+      - |
+        for PLATFORM in $${PLATFORMS}; do
+          ./publish.sh $${DRONE_REPO_OWNER} $${DRONE_REPO_NAME} $${DRONE_TAG} "htop-$${DRONE_TAG}-$${PLATFORM}"
+        done
 
 trigger:
   event:
